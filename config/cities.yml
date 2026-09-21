@@ -1,0 +1,20 @@
+cities:
+  - name: Chennai
+    lattitude: 13.0827
+    longitude: 80.2707
+
+  - name: Bengaluru
+    latitude: 12.9716
+    longitude: 77.5946
+
+  - name: Mumbai
+    latitude: 19.0760
+    longitude: 72.8777
+  
+  - name: Tokyo
+    lattitude: 35.6895
+    longitude: 139.6917
+
+  - name: Seoul
+    lattitude: 37.5665
+    longitude: 126.9780
