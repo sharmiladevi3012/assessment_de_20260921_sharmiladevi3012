@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_weather
+    description: "Staging model for daily weather data for each city."
+    columns:
+      - name: city
+        description: "The name of the city."
+        data_tests:
+          - not_null
+      - name: date
+        description: "The date of the weather observation."
+        data_tests:
+          - not_null
+      - name: mean_temperature
+        description: "The average temperature for the day in Celsius."
+        data_tests:
+          - not_null
+      - name: min_temperature
+        description: "The minimum temperature for the day in Celsius."
+        data_tests:
+          - not_null
+      - name: max_temperature
+        description: "The maximum temperature for the day in Celsius."
+        data_tests:
+          - not_null
+      - name: total_precipitation
+        description: "The total precipitation for the day in millimeters."
+        data_tests:
+          - not_null

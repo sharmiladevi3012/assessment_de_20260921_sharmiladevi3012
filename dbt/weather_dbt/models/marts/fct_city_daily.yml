@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: fct_city_daily
+    description: "Fact table for daily weather data for each city."
+    columns:
+      - name: city
+        description: "The name of the city."
+      - name: date
+        description: "The date of the weather observation."
+      - name: mean_temperature
+        description: "The average temperature for the day in Celsius."
+      - name: min_temperature
+        description: "The minimum temperature for the day in Celsius."
+      - name: max_temperature
+        description: "The maximum temperature for the day in Celsius."
+      - name: temperature_range
+        description: "The difference between the maximum and minimum temperatures for the day in Celsius."
+        data_tests:
+          - not_null
+      - name: total_precipitation
+        description: "The total precipitation for the day in millimeters."

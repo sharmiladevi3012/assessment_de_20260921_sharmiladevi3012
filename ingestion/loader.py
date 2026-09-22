@@ -34,18 +34,17 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
 
 def _connection(db_config):
     return psycopg2.connect(
-        host=db_config["localhost"],
-        port=db_config.get("port", 5432),
-        dbname=db_config["warehouse"],
-        user=db_config["db"],
-        password=db_config["db"],
+        host=db_config.get("host", "localhost"),
+        port=db_config.get("port", 5433),
+        dbname=db_config.get("dbname", "warehouse"),
+        user=db_config.get("user", "de"),
+        password=db_config.get("password", "de"),
     )
 
 def _rows_for_city(city, logical_date):
     latitude, longitude = city["latitude"], city["longitude"]
     weather = fetch_weather(latitude, longitude, logical_date, logical_date)
     daily = weather["daily"]
-    daily_units = weather["daily_units"]
     rows = []
 
     for index, daily_date in enumerate(daily["time"]):
@@ -55,10 +54,10 @@ def _rows_for_city(city, logical_date):
             latitude,
             longitude,
             weather["timezone"],
-            daily_units["temperature_2m_mean"][index],
-            daily_units["temperature_2m_min"][index],
-            daily_units["temperature_2m_max"][index],
-            daily_units["precipitation_sum"][index],
+            daily["temperature_2m_mean"][index],
+            daily["temperature_2m_min"][index],
+            daily["temperature_2m_max"][index],
+            daily["precipitation_sum"][index],
         )
         rows.append(row)
 
@@ -67,6 +66,10 @@ def _rows_for_city(city, logical_date):
 
 def load_weather_for_date(cities, logical_date, db_config):
     """Fetch and idempotently load weather for one logical date."""
+    with _connection(db_config) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(CREATE_TABLE_SQL)
+
     rows = []
     for city in cities:
         city_rows = _rows_for_city(city, logical_date)
@@ -74,7 +77,6 @@ def load_weather_for_date(cities, logical_date, db_config):
 
     with _connection(db_config) as connection:
         with connection.cursor() as cursor:
-            cursor.execute(CREATE_TABLE_SQL)
             cursor.execute(DELETE_SQL, (logical_date,))
             if rows:
                 cursor.executemany(INSERT_SQL, rows)
