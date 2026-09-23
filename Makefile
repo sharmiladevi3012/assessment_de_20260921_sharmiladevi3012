@@ -10,16 +10,16 @@ logs:
 	docker compose logs -f airflow
 
 airflow-ui:
-	@echo "Airflow:    http://localhost:8080  (admin / admin)"
+	@echo "Airflow:    http://localhost:8081  (admin / admin)"
 
 notebook:
 	@echo "JupyterLab: http://localhost:8888  (open notebooks/walkthrough.ipynb)"
 
 dbt:
-	docker compose exec airflow bash -c "cd /opt/airflow/dbt && dbt run"
+	docker compose exec airflow bash -c "cd /opt/airflow/dbt/weather_dbt && dbt run"
 
 dbt-test:
-	docker compose exec airflow bash -c "cd /opt/airflow/dbt && dbt test"
+	docker compose exec airflow bash -c "cd /opt/airflow/dbt/weather_dbt && dbt test"
 
 psql:
 	docker compose exec postgres psql -U $${POSTGRES_USER:-de} -d $${POSTGRES_DB:-warehouse}

@@ -1,4 +1,7 @@
+import os
+
 import psycopg2
+import yaml
 from datetime import date, timedelta
 from ingestion.open_meto import fetch_weather
 
@@ -16,6 +19,7 @@ CREATE TABLE IF NOT EXISTS raw.weather_daily (
     temperature_2m_min DECIMAL(10, 2),
     temperature_2m_max DECIMAL(10, 2),
     precipitation_sum DECIMAL(10, 2),
+    loaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (city, date)
 );
 """
@@ -34,12 +38,29 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
 
 def _connection(db_config):
     return psycopg2.connect(
-        host=db_config.get("host", "localhost"),
-        port=db_config.get("port", 5433),
+        host=db_config.get("host", "postgres"),
+        port=db_config.get("port", 5432),
         dbname=db_config.get("dbname", "warehouse"),
         user=db_config.get("user", "de"),
         password=db_config.get("password", "de"),
     )
+
+
+def get_db_config():
+    """Read the warehouse connection details supplied by Docker Compose."""
+    return {
+        "host": os.environ.get("WAREHOUSE_HOST", "postgres"),
+        "port": int(os.environ.get("WAREHOUSE_PORT", "5432")),
+        "dbname": os.environ.get("WAREHOUSE_DB", "warehouse"),
+        "user": os.environ.get("WAREHOUSE_USER", "de"),
+        "password": os.environ.get("WAREHOUSE_PASSWORD", "de"),
+    }
+
+
+def get_cities(config_path="/opt/airflow/config/cities.yml"):
+    """Read the configured cities used by the weather extraction."""
+    with open(config_path, encoding="utf-8") as config_file:
+        return yaml.safe_load(config_file)["cities"]
 
 def _rows_for_city(city, logical_date):
     latitude, longitude = city["latitude"], city["longitude"]
@@ -64,22 +85,31 @@ def _rows_for_city(city, logical_date):
     return rows
 
 
-def load_weather_for_date(cities, logical_date, db_config):
-    """Fetch and idempotently load weather for one logical date."""
+def extract_weather_for_date(cities, logical_date):
+    """Extract raw weather rows for one logical date without writing to Postgres."""
+    rows = []
+    for city in cities:
+        rows.extend(_rows_for_city(city, logical_date))
+    return rows
+
+
+def load_weather_rows(rows, logical_date, db_config):
+    """Idempotently load extracted rows for one logical date."""
     with _connection(db_config) as connection:
         with connection.cursor() as cursor:
             cursor.execute(CREATE_TABLE_SQL)
-
-    rows = []
-    for city in cities:
-        city_rows = _rows_for_city(city, logical_date)
-        rows.extend(city_rows)
 
     with _connection(db_config) as connection:
         with connection.cursor() as cursor:
             cursor.execute(DELETE_SQL, (logical_date,))
             if rows:
                 cursor.executemany(INSERT_SQL, rows)
+
+
+def load_weather_for_date(cities, logical_date, db_config):
+    """Fetch and idempotently load weather for one logical date."""
+    rows = extract_weather_for_date(cities, logical_date)
+    load_weather_rows(rows, logical_date, db_config)
 
 
 def load_weather_for_date_range(cities, start_date, end_date, db_config):

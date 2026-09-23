@@ -26,6 +26,10 @@ services:
     environment: &pipeline_env
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      # Simple Auth Manager is used for local assessment access only.
+      # The username is admin and the role is admin; the password is in the mounted file.
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "admin:admin"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/config/simple_auth_manager_passwords.json
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-de}:${POSTGRES_PASSWORD:-de}@postgres:5432/airflow
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       _AIRFLOW_WWW_USER_USERNAME: admin
@@ -36,6 +40,7 @@ services:
       WAREHOUSE_USER: ${POSTGRES_USER:-de}
       WAREHOUSE_PASSWORD: ${POSTGRES_PASSWORD:-de}
       DBT_PROFILES_DIR: /opt/airflow/dbt
+      PYTHONPATH: /opt/airflow
     volumes: &pipeline_volumes
       - ./dags:/opt/airflow/dags
       - ./ingestion:/opt/airflow/ingestion
@@ -43,7 +48,7 @@ services:
       - ./config:/opt/airflow/config
       - ./notebooks:/opt/airflow/notebooks
     ports:
-      - "8080:8080"
+      - "8081:8080"
     command: standalone
 
   # Same image and environment as Airflow, so the notebook imports the same code and
