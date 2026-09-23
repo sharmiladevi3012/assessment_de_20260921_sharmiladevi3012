@@ -24,8 +24,6 @@ CREATE TABLE IF NOT EXISTS raw.weather_daily (
 );
 """
 
-DELETE_SQL = "DELETE FROM raw.weather_daily WHERE date = %s;"
-
 INSERT_SQL = """
 INSERT INTO raw.weather_daily (
     city, date, latitude, longitude, timezone,
@@ -33,6 +31,14 @@ INSERT INTO raw.weather_daily (
     temperature_2m_max, precipitation_sum
 )
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (city, date) DO UPDATE SET
+    latitude = EXCLUDED.latitude,
+    longitude = EXCLUDED.longitude,
+    timezone = EXCLUDED.timezone,
+    temperature_2m_mean = EXCLUDED.temperature_2m_mean,
+    temperature_2m_min = EXCLUDED.temperature_2m_min,
+    temperature_2m_max = EXCLUDED.temperature_2m_max,
+    precipitation_sum = EXCLUDED.precipitation_sum
 ;
 """
 
@@ -57,7 +63,7 @@ def get_db_config():
     }
 
 
-def get_cities(config_path="/opt/airflow/config/cities.yml"):
+def get_cities(config_path="config/cities.yml"):
     """Read the configured cities used by the weather extraction."""
     with open(config_path, encoding="utf-8") as config_file:
         return yaml.safe_load(config_file)["cities"]
@@ -94,14 +100,10 @@ def extract_weather_for_date(cities, logical_date):
 
 
 def load_weather_rows(rows, logical_date, db_config):
-    """Idempotently load extracted rows for one logical date."""
+    """Idempotently load extracted rows for one logical date using upsert."""
     with _connection(db_config) as connection:
         with connection.cursor() as cursor:
             cursor.execute(CREATE_TABLE_SQL)
-
-    with _connection(db_config) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(DELETE_SQL, (logical_date,))
             if rows:
                 cursor.executemany(INSERT_SQL, rows)
 
