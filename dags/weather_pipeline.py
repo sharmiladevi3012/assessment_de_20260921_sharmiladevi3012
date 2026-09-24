@@ -7,7 +7,7 @@ from airflow.operators.python import PythonOperator
 from ingestion.loader import get_cities, get_db_config, load_weather_for_date
 
 def extract_and_load(**context):
-    load_weather_for_date(get_cities(), context["ds"], get_db_config())
+	load_weather_for_date(get_cities(), context["ds"], get_db_config())
 
 with DAG(
 	dag_id="weather_pipeline",
