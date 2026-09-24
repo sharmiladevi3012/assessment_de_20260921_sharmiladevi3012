@@ -99,7 +99,7 @@ def extract_weather_for_date(cities, logical_date):
     return rows
 
 
-def load_weather_rows(rows, logical_date, db_config):
+def load_weather_rows(rows, db_config):
     """Idempotently load extracted rows for one logical date using upsert."""
     with _connection(db_config) as connection:
         with connection.cursor() as cursor:
@@ -111,7 +111,7 @@ def load_weather_rows(rows, logical_date, db_config):
 def load_weather_for_date(cities, logical_date, db_config):
     """Fetch and idempotently load weather for one logical date."""
     rows = extract_weather_for_date(cities, logical_date)
-    load_weather_rows(rows, logical_date, db_config)
+    load_weather_rows(rows, db_config)
 
 
 def load_weather_for_date_range(cities, start_date, end_date, db_config):
